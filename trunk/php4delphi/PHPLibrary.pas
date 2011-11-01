@@ -53,6 +53,8 @@ type
     function GetInputArgAsBoolean(AIndex: integer): boolean;
     function GetInputArgAsFloat(AIndex: integer): double;
     function GetInputArgAsDateTime(AIndex: integer): TDateTime;
+    function GetInputArgAsZValue(AIndex: integer): pzval;
+    function GetInputArgAsZendVariable(AIndex: integer): TZendVariable;
   public
     procedure RegisterMethod(AName: AnsiString; ADescription: AnsiString;
       AProc: TDispatchProc; AParams: array of TParamType); virtual;
@@ -236,6 +238,17 @@ end;
 function TPHPSimpleLibrary.GetInputArgAsString(AIndex: integer): string;
 begin
   result := VarToStr(GetInputArg(AIndex));
+end;
+
+function TPHPSimpleLibrary.GetInputArgAsZendVariable(
+  AIndex: integer): TZendVariable;
+begin
+  result := FParams[AIndex].ZendVariable;
+end;
+
+function TPHPSimpleLibrary.GetInputArgAsZValue(AIndex: integer): pzval;
+begin
+  result := FParams[AIndex].ZendValue;
 end;
 
 constructor TPHPSimpleLibrary.Create(AOwner: TComponent);

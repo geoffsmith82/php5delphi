@@ -16,7 +16,7 @@ unit phpModules;
 
 interface
  uses
-   SyncObjs, Windows, SysUtils, Classes, Forms, Consts,
+   SyncObjs, Windows, SysUtils, Classes, vcl.Forms, vcl.Consts,
    PHPCommon,
    {$IFDEF VERSION6}RTLConsts, Variants,{$ENDIF} ZendAPI, phpAPI,
    phpFunctions,
@@ -452,7 +452,7 @@ begin
     try
       if Assigned(OnCreate) and OldCreateOrder then OnCreate(Self);
     except
-      Forms.Application.HandleException(Self);
+      vcl.Forms.Application.HandleException(Self);
     end;
   end;
 end;
@@ -463,11 +463,11 @@ end;
 procedure DoneVCLApplication;
 begin
   try
-   Forms.Application.OnException := nil;
-   if Forms.Application.Handle <> 0 then ShowOwnedPopups(Forms.Application.Handle, False);
-   Forms.Application.ShowHint := False;
-   Forms.Application.Destroying;
-   Forms.Application.DestroyComponents;
+   vcl.Forms.Application.OnException := nil;
+   if vcl.Forms.Application.Handle <> 0 then ShowOwnedPopups(vcl.Forms.Application.Handle, False);
+   vcl.Forms.Application.ShowHint := False;
+   vcl.Forms.Application.Destroying;
+   vcl.Forms.Application.DestroyComponents;
   except
   end; 
 end;
@@ -600,7 +600,7 @@ end;
 
 procedure TPHPApplication.Run;
 begin
-  Forms.Application.OnException := OnExceptionHandler;
+  vcl.Forms.Application.OnException := OnExceptionHandler;
 end;
 
 
