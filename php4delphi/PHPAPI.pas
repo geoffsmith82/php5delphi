@@ -241,6 +241,7 @@ var
 
 function GetPostVariables: pzval;
 function GetGetVariables: pzval;
+function GetSessionVariables: pzval;
 function GetServerVariables: pzval;
 function GetEnvVariables: pzval;
 function GetFilesVariables: pzval;
@@ -916,6 +917,16 @@ begin
   TSRMLS_D := ts_resource_ex(0, nil);
   CoreGlobals := PG(TSRMLS_D);
   Result := CoreGlobals^.http_globals[1];
+end;
+
+function GetSessionVariables: pzval;
+var
+  TSRMLS_D: pointer;
+  CoreGlobals: Pphp_Core_Globals;
+begin
+  TSRMLS_D := ts_resource_ex(0, nil);
+  CoreGlobals := PG(TSRMLS_D);
+  Result := CoreGlobals^.http_globals[2];
 end;
 
 function GetServerVariables: pzval;

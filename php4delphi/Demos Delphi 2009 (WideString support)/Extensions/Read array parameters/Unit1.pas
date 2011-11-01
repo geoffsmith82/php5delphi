@@ -7,7 +7,7 @@ uses
    Messages,
    SysUtils,
    Classes,
-   Forms,
+   vcl.Forms,
    zendTypes,
    zendAPI,
    phpTypes,

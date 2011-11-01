@@ -19,7 +19,7 @@ unit PHPCommon;
 interface
 
 uses
-  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
+  Windows, Messages, SysUtils, Classes, vcl.Graphics, vcl.Controls, vcl.Forms, vcl.Dialogs,
   ZendTypes, ZendAPI, PHPTypes, PHPAPI;
 
 type
