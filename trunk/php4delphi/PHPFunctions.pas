@@ -1,185 +1,203 @@
-{*******************************************************}
-{                     PHP4Delphi                        }
-{               PHP - Delphi interface                  }
-{                                                       }
-{ Author:                                               }
-{ Serhiy Perevoznyk                                     }
-{ serge_perevoznyk@hotmail.com                          }
-{ http://users.chello.be/ws36637                        }
-{*******************************************************}
+{ ******************************************************* }
+{ PHP4Delphi }
+{ PHP - Delphi interface }
+{ }
+{ Author: }
+{ Serhiy Perevoznyk }
+{ serge_perevoznyk@hotmail.com }
+{ http://users.chello.be/ws36637 }
+{ ******************************************************* }
 {$I PHP.INC}
-
-{ $Id: PHPFunctions.pas,v 7.2 10/2009 delphi32 Exp $ } 
+{ $Id: PHPFunctions.pas,v 7.2 10/2009 delphi32 Exp $ }
 
 unit phpFunctions;
 
 interface
- uses
-   Windows, SysUtils,  Classes, {$IFDEF VERSION6} Variants,
-   {$ENDIF} ZendTypes, PHPTypes, ZendAPI, PHPAPI ;
+
+uses
+  Windows, SysUtils, Classes, {$IFDEF VERSION6} Variants,
+{$ENDIF} ZendTypes, PHPTypes, ZendAPI, PHPAPI;
 
 type
   TParamType = (tpString, tpInteger, tpFloat, tpBoolean, tpArray, tpUnknown);
 
   TZendVariable = class
   private
-    FValue : PZval;
-    function  GetAsBoolean: boolean;
+    FValue: PZval;
+    function GetAsBoolean: boolean;
     procedure SetAsBoolean(const Value: boolean);
-    function  GetAsFloat: double;
-    function  GetAsInteger: integer;
-    function  GetAsString: AnsiString;
+    function GetAsFloat: double;
+    function GetAsInteger: integer;
+    function GetAsString: AnsiString;
     procedure SetAsFloat(const Value: double);
     procedure SetAsInteger(const Value: integer);
     procedure SetAsString(const Value: AnsiString);
-    function  GetAsDate: TDateTime;
-    function  GetAsDateTime: TDateTime;
-    function  GetAsTime: TDateTime;
+    function GetAsDate: TDateTime;
+    function GetAsDateTime: TDateTime;
+    function GetAsTime: TDateTime;
     procedure SetAsDate(const Value: TDateTime);
     procedure SetAsDateTime(const Value: TDateTime);
     procedure SetAsTime(const Value: TDateTime);
-    function  GetAsVariant: variant;
+    function GetAsVariant: variant;
     procedure SetAsVariant(const Value: variant);
-    function  GetDataType: integer;
-    function  GetIsNull: boolean;
-    function  GetTypeName: string;
+    function GetDataType: integer;
+    function GetIsNull: boolean;
+    function GetTypeName: string;
   public
     constructor Create; virtual;
-    procedure   UnAssign;
-    property    IsNull : boolean read GetIsNull;
-    property    AsZendVariable : Pzval read FValue write FValue;
-    property    AsBoolean : boolean read GetAsBoolean write SetAsBoolean;
-    property    AsInteger : integer read GetAsInteger write SetAsInteger;
-    property    AsString  : AnsiString read GetAsString  write SetAsString;
-    property    AsFloat   : double  read GetAsFloat write SetAsFloat;
-    property    AsDate    : TDateTime read GetAsDate write SetAsDate;
-    property    AsTime    : TDateTime read GetAsTime write SetAsTime;
-    property    AsDateTime : TDateTime read GetAsDateTime write SetAsDateTime;
-    property    AsVariant : variant read GetAsVariant write SetAsVariant;
-    property    DataType : integer read GetDataType;
-    property    TypeName : string read GetTypeName;
+    procedure UnAssign;
+    property IsNull: boolean read GetIsNull;
+    property AsZendVariable: PZval read FValue write FValue;
+    property AsBoolean: boolean read GetAsBoolean write SetAsBoolean;
+    property AsInteger: integer read GetAsInteger write SetAsInteger;
+    property AsString: AnsiString read GetAsString write SetAsString;
+    property AsFloat: double read GetAsFloat write SetAsFloat;
+    property AsDate: TDateTime read GetAsDate write SetAsDate;
+    property AsTime: TDateTime read GetAsTime write SetAsTime;
+    property AsDateTime: TDateTime read GetAsDateTime write SetAsDateTime;
+    property AsVariant: variant read GetAsVariant write SetAsVariant;
+    property DataType: integer read GetDataType;
+    property TypeName: string read GetTypeName;
   end;
-
 
   TFunctionParam = class(TCollectionItem)
   private
-    FName  : string;
-    FParamType : TParamType;
-    FZendVariable : TZendVariable;
-    function GetZendValue: PZVal;
-    procedure SetZendValue(const Value: PZVal);
+    FName: string;
+    FParamType: TParamType;
+    FZendVariable: TZendVariable;
+    function GetZendValue: PZval;
+    procedure SetZendValue(const Value: PZval);
     function GetValue: variant;
     procedure SetValue(const Value: variant);
   public
-    constructor Create(Collection : TCollection); override;
+    constructor Create(Collection: TCollection); override;
     destructor Destroy; override;
     function GetDisplayName: string; override;
     procedure SetDisplayName(const Value: string); override;
     procedure AssignTo(Dest: TPersistent); override;
-    property Value : variant read GetValue write SetValue;
-    property ZendValue : PZVal read GetZendValue write SetZendValue;
-    property ZendVariable : TZendVariable read FZendVariable write FZendVariable;
+    property Value: variant read GetValue write SetValue;
+    property ZendValue: PZval read GetZendValue write SetZendValue;
+    property ZendVariable: TZendVariable read FZendVariable write FZendVariable;
   published
-    property Name : string read FName write SetDisplayName;
-    property ParamType : TParamType read FParamType write FParamType;
+    property Name: string read FName write SetDisplayName;
+    property ParamType: TParamType read FParamType write FParamType;
   end;
 
   TFunctionParams = class(TCollection)
   private
     FOwner: TPersistent;
-    function  GetItem(Index: Integer): TFunctionParam;
-    procedure SetItem(Index: Integer; Value: TFunctionParam);
+    function GetItem(Index: integer): TFunctionParam;
+    procedure SetItem(Index: integer; Value: TFunctionParam);
   protected
     function GetOwner: TPersistent; override;
     procedure SetItemName(Item: TCollectionItem); override;
   public
     constructor Create(Owner: TPersistent; ItemClass: TCollectionItemClass);
-    function ParamByName(AName : string) : TFunctionParam;
-    function Values(AName : string) : Variant;
-    function Add : TFunctionParam;
-    property Items[Index: Integer]: TFunctionParam read GetItem write SetItem; default;
+    function ParamByName(AName: string): TFunctionParam;
+    function Values(AName: string): variant;
+    function Add: TFunctionParam;
+    property Items[Index: integer]: TFunctionParam read GetItem
+      write SetItem; default;
   end;
 
-
-  TPHPExecute = procedure(Sender : TObject; Parameters : TFunctionParams ; var ReturnValue : Variant;
-                          ZendVar : TZendVariable;  TSRMLS_DC : pointer) of object;
+  TPHPExecute = procedure(Sender: TObject; Parameters: TFunctionParams;
+    var ReturnValue: variant; ZendVar: TZendVariable; TSRMLS_DC: pointer)
+    of object;
 
   TPHPFunction = class(TCollectionItem)
   private
-    FOnExecute : TPHPExecute;
-    FFunctionName  : AnsiString;
-    FTag       : integer;
+    FOnExecute: TPHPExecute;
+    FFunctionName: AnsiString;
+    FTag: integer;
     FFunctionParams: TFunctionParams;
     FDescription: AnsiString;
     procedure SetFunctionParams(const Value: TFunctionParams);
-    procedure _SetDisplayName(const value : AnsiString);
+    procedure _SetDisplayName(const Value: AnsiString);
   public
-    constructor Create(Collection : TCollection); override;
+    constructor Create(Collection: TCollection); override;
     destructor Destroy; override;
-    function  GetDisplayName: string; override;
+    function GetDisplayName: string; override;
     procedure SetDisplayName(const Value: string); override;
     procedure AssignTo(Dest: TPersistent); override;
   published
-    property FunctionName : AnsiString read FFunctionName write _SetDisplayName;
-    property Tag  : integer read FTag write FTag;
-    property Parameters: TFunctionParams read FFunctionParams write SetFunctionParams;
-    property OnExecute : TPHPExecute read FOnExecute write FOnExecute;
-    property Description : AnsiString read FDescription write FDescription;
+    property FunctionName: AnsiString read FFunctionName write _SetDisplayName;
+    property Tag: integer read FTag write FTag;
+    property Parameters: TFunctionParams read FFunctionParams
+      write SetFunctionParams;
+    property OnExecute: TPHPExecute read FOnExecute write FOnExecute;
+    property Description: AnsiString read FDescription write FDescription;
   end;
 
   TPHPFunctions = class(TCollection)
   private
     FOwner: TPersistent;
   protected
-    function GetItem(Index: Integer): TPHPFunction;
-    procedure SetItem(Index: Integer; Value: TPHPFunction);
+    function GetItem(Index: integer): TPHPFunction;
+    procedure SetItem(Index: integer; Value: TPHPFunction);
     function GetOwner: TPersistent; override;
     procedure SetItemName(Item: TCollectionItem); override;
   public
-    constructor Create(AOwner: TPersistent; ItemClass: TCollectionItemClass); virtual;
-    function Add : TPHPFunction;
-    function FunctionByName(const AName : AnsiString) : TPHPFunction;
-    property Items[Index: Integer]: TPHPFunction read GetItem write SetItem; default;
+    constructor Create(AOwner: TPersistent;
+      ItemClass: TCollectionItemClass); virtual;
+    function Add: TPHPFunction;
+    function FunctionByName(const AName: AnsiString): TPHPFunction;
+    property Items[Index: integer]: TPHPFunction read GetItem
+      write SetItem; default;
   end;
 
+function IsParamTypeCorrect(AParamType: TParamType; z: PZval): boolean;
 
-function IsParamTypeCorrect(AParamType :  TParamType; z : Pzval) : boolean;
-
-function ZendTypeToString(_type : integer) : string;
+function ZendTypeToString(_type: integer): string;
 
 implementation
 
-function ZendTypeToString(_type : integer) : string;
+function ZendTypeToString(_type: integer): string;
 begin
   case _type of
-  IS_NULL              : Result := 'IS_NULL';
-  IS_LONG              : Result := 'IS_LONG';
-  IS_DOUBLE            : Result := 'IS_DOUBLE';
-  IS_STRING            : Result := 'IS_STRING';
-  IS_ARRAY             : Result := 'IS_ARRAY';
-  IS_OBJECT            : Result := 'IS_OBJECT';
-  IS_BOOL              : Result := 'IS_BOOL';
-  IS_RESOURCE          : Result := 'IS_RESOURCE';
-  IS_CONSTANT          : Result := 'IS_CONSTANT';
-  IS_CONSTANT_ARRAY    : Result := 'IS_CONSTANT_ARRAY';
+    IS_NULL:
+      Result := 'IS_NULL';
+    IS_LONG:
+      Result := 'IS_LONG';
+    IS_DOUBLE:
+      Result := 'IS_DOUBLE';
+    IS_STRING:
+      Result := 'IS_STRING';
+    IS_ARRAY:
+      Result := 'IS_ARRAY';
+    IS_OBJECT:
+      Result := 'IS_OBJECT';
+    IS_BOOL:
+      Result := 'IS_BOOL';
+    IS_RESOURCE:
+      Result := 'IS_RESOURCE';
+    IS_CONSTANT:
+      Result := 'IS_CONSTANT';
+    IS_CONSTANT_ARRAY:
+      Result := 'IS_CONSTANT_ARRAY';
   end;
 end;
 
-function IsParamTypeCorrect(AParamType :  TParamType; z : Pzval) : boolean;
+function IsParamTypeCorrect(AParamType: TParamType; z: PZval): boolean;
 var
-  ZType : integer;
+  ZType: integer;
 begin
-  ZType := Z^._type;
+  ZType := z^._type;
   case AParamType Of
-   tpString  : Result := (ztype in [IS_STRING, IS_NULL]);
-   tpInteger : Result := (ztype in [IS_LONG, IS_BOOL, IS_NULL, IS_RESOURCE]);
-   tpFloat   : Result := (ztype in [IS_NULL, IS_DOUBLE, IS_LONG]);
-   tpBoolean : Result := (ztype in [IS_NULL, IS_BOOL]);
-   tpArray   : Result := (ztype in [IS_NULL, IS_ARRAY]);
-   tpUnknown : Result := True;
-    else
-     Result := False;
-   end;
+    tpString:
+      Result := (ZType in [IS_STRING, IS_NULL]);
+    tpInteger:
+      Result := (ZType in [IS_LONG, IS_BOOL, IS_NULL, IS_RESOURCE]);
+    tpFloat:
+      Result := (ZType in [IS_NULL, IS_DOUBLE, IS_LONG]);
+    tpBoolean:
+      Result := (ZType in [IS_NULL, IS_BOOL]);
+    tpArray:
+      Result := (ZType in [IS_NULL, IS_ARRAY]);
+    tpUnknown:
+      Result := True;
+  else
+    Result := False;
+  end;
 end;
 
 { TPHPFunctions }
@@ -189,7 +207,8 @@ begin
   Result := TPHPFunction(inherited Add);
 end;
 
-constructor TPHPFunctions.Create(AOwner: TPersistent; ItemClass: TCollectionItemClass);
+constructor TPHPFunctions.Create(AOwner: TPersistent;
+  ItemClass: TCollectionItemClass);
 begin
   inherited Create(ItemClass);
   FOwner := AOwner;
@@ -197,20 +216,20 @@ end;
 
 function TPHPFunctions.FunctionByName(const AName: AnsiString): TPHPFunction;
 var
- cnt : integer;
+  cnt: integer;
 begin
   Result := nil;
-  for cnt := 0 to Count -1 do
-   begin
-     if SameText(AName, Items[cnt].FunctionName) then
-      begin
-        Result := Items[cnt];
-        break;
-      end;
-   end;
+  for cnt := 0 to Count - 1 do
+  begin
+    if SameText(AName, Items[cnt].FunctionName) then
+    begin
+      Result := Items[cnt];
+      break;
+    end;
+  end;
 end;
 
-function TPHPFunctions.GetItem(Index: Integer): TPHPFunction;
+function TPHPFunctions.GetItem(Index: integer): TPHPFunction;
 begin
   Result := TPHPFunction(inherited GetItem(Index));
 end;
@@ -220,15 +239,14 @@ begin
   Result := FOwner;
 end;
 
-procedure TPHPFunctions.SetItem(Index: Integer; Value: TPHPFunction);
+procedure TPHPFunctions.SetItem(Index: integer; Value: TPHPFunction);
 begin
   inherited SetItem(Index, TCollectionItem(Value));
 end;
 
-
 procedure TPHPFunctions.SetItemName(Item: TCollectionItem);
 var
-  I, J: Integer;
+  I, J: integer;
   ItemName: string;
   CurItem: TPHPFunction;
 begin
@@ -240,29 +258,30 @@ begin
     while I < Count do
     begin
       CurItem := Items[I] as TPHPFunction;
-      if (CurItem <> Item) and (CompareText(CurItem.FunctionName, ItemName) = 0) then
+      if (CurItem <> Item) and (CompareText(CurItem.FunctionName, ItemName) = 0)
+      then
       begin
         Inc(J);
-        Break;
+        break;
       end;
       Inc(I);
     end;
     if I >= Count then
     begin
       (Item as TPHPFunction).FunctionName := ItemName;
-      Break;
+      break;
     end;
   end;
 end;
 
 { TPHPFunction }
 
-
 procedure TPHPFunction.AssignTo(Dest: TPersistent);
 begin
   if Dest is TPHPFunction then
   begin
-    if Assigned(Collection) then Collection.BeginUpdate;
+    if Assigned(Collection) then
+      Collection.BeginUpdate;
     try
       with TPHPFunction(Dest) do
       begin
@@ -272,16 +291,19 @@ begin
         FunctionName := Self.FunctionName;
       end;
     finally
-      if Assigned(Collection) then Collection.EndUpdate;
+      if Assigned(Collection) then
+        Collection.EndUpdate;
     end;
-  end else inherited AssignTo(Dest);
+  end
+  else
+    inherited AssignTo(Dest);
 end;
-  
 
 constructor TPHPFunction.Create(Collection: TCollection);
 begin
   inherited Create(Collection);
-  FFunctionParams := TFunctionParams.Create(TPHPFunctions(Self.Collection).GetOwner, TFunctionParam);
+  FFunctionParams := TFunctionParams.Create(TPHPFunctions(Self.Collection)
+    .GetOwner, TFunctionParam);
 end;
 
 destructor TPHPFunction.Destroy;
@@ -294,19 +316,18 @@ end;
 function TPHPFunction.GetDisplayName: string;
 begin
   if FFunctionName = '' then
-   result :=  inherited GetDisplayName else
-     Result := FFunctionName;
+    Result := inherited GetDisplayName
+  else
+    Result := FFunctionName;
 end;
-
-
 
 procedure TPHPFunction.SetDisplayName(const Value: string);
 var
-  I: Integer;
+  I: integer;
   F: TPHPFunction;
-  NameValue : AnsiString;
+  NameValue: AnsiString;
 begin
-   NameValue := Value;
+  NameValue := Value;
   if AnsiCompareText(NameValue, FFunctionName) <> 0 then
   begin
     if Collection <> nil then
@@ -317,16 +338,16 @@ begin
           (AnsiCompareText(NameValue, F.FunctionName) = 0) then
           raise Exception.CreateFmt('Duplicate function name: %s', [Value]);
       end;
-    FFunctionName :=  AnsiLowerCase(Value);
+    FFunctionName := AnsiLowerCase(Value);
     Changed(False);
   end;
 end;
 
 procedure TPHPFunction._SetDisplayName(const Value: AnsiString);
 var
-  NewName : string;
+  NewName: string;
 begin
-  NewName := value;
+  NewName := Value;
   SetDisplayName(NewName);
 end;
 
@@ -334,7 +355,6 @@ procedure TPHPFunction.SetFunctionParams(const Value: TFunctionParams);
 begin
   FFunctionParams.Assign(Value);
 end;
-
 
 { TFunctionParams }
 
@@ -350,7 +370,7 @@ begin
   FOwner := Owner;
 end;
 
-function TFunctionParams.GetItem(Index: Integer): TFunctionParam;
+function TFunctionParams.GetItem(Index: integer): TFunctionParam;
 begin
   Result := TFunctionParam(inherited GetItem(Index));
 end;
@@ -362,27 +382,27 @@ end;
 
 function TFunctionParams.ParamByName(AName: string): TFunctionParam;
 var
- i : integer;
+  I: integer;
 begin
   Result := nil;
-  for i := 0 to Count - 1 do
-   begin
-     if SameText(AName, Items[i].Name) then
-      begin
-        Result := Items[i];
-        Break;
-      end;
-   end;
+  for I := 0 to Count - 1 do
+  begin
+    if SameText(AName, Items[I].Name) then
+    begin
+      Result := Items[I];
+      break;
+    end;
+  end;
 end;
 
-procedure TFunctionParams.SetItem(Index: Integer; Value: TFunctionParam);
+procedure TFunctionParams.SetItem(Index: integer; Value: TFunctionParam);
 begin
   inherited SetItem(Index, TCollectionItem(Value));
 end;
 
 procedure TFunctionParams.SetItemName(Item: TCollectionItem);
 var
-  I, J: Integer;
+  I, J: integer;
   ItemName: string;
   CurItem: TFunctionParam;
 begin
@@ -397,26 +417,26 @@ begin
       if (CurItem <> Item) and (CompareText(CurItem.Name, ItemName) = 0) then
       begin
         Inc(J);
-        Break;
+        break;
       end;
       Inc(I);
     end;
     if I >= Count then
     begin
       (Item as TFunctionParam).Name := ItemName;
-      Break;
+      break;
     end;
   end;
 end;
 
-function TFunctionParams.Values(AName: string): Variant;
+function TFunctionParams.Values(AName: string): variant;
 var
- P : TFunctionParam;
+  P: TFunctionParam;
 begin
   Result := NULL;
   P := ParamByName(AName);
   if Assigned(P) then
-   Result := P.Value;
+    Result := P.Value;
 end;
 
 { TFunctionParam }
@@ -425,7 +445,8 @@ procedure TFunctionParam.AssignTo(Dest: TPersistent);
 begin
   if Dest is TFunctionParam then
   begin
-    if Assigned(Collection) then Collection.BeginUpdate;
+    if Assigned(Collection) then
+      Collection.BeginUpdate;
     try
       with TFunctionParam(Dest) do
       begin
@@ -433,9 +454,12 @@ begin
         Name := Self.Name;
       end;
     finally
-      if Assigned(Collection) then Collection.EndUpdate;
+      if Assigned(Collection) then
+        Collection.EndUpdate;
     end;
-  end else inherited AssignTo(Dest);
+  end
+  else
+    inherited AssignTo(Dest);
 end;
 
 constructor TFunctionParam.Create(Collection: TCollection);
@@ -453,23 +477,24 @@ end;
 function TFunctionParam.GetDisplayName: string;
 begin
   if FName = '' then
-   result :=  inherited GetDisplayName else
-     Result := FName;
+    Result := inherited GetDisplayName
+  else
+    Result := FName;
 end;
 
 function TFunctionParam.GetValue: variant;
 begin
-   Result := FZendVariable.AsVariant;
+  Result := FZendVariable.AsVariant;
 end;
 
-function TFunctionParam.GetZendValue: PZVal;
+function TFunctionParam.GetZendValue: PZval;
 begin
   Result := FZendVariable.FValue;
 end;
 
 procedure TFunctionParam.SetDisplayName(const Value: string);
 var
-  I: Integer;
+  I: integer;
   F: TFunctionParam;
 begin
   if AnsiCompareText(Value, FName) <> 0 then
@@ -487,15 +512,14 @@ begin
   end;
 end;
 
-
 procedure TFunctionParam.SetValue(const Value: variant);
 begin
   FZendVariable.AsVariant := Value;
 end;
 
-procedure TFunctionParam.SetZendValue(const Value: PZVal);
+procedure TFunctionParam.SetZendValue(const Value: PZval);
 begin
-   FZendVariable.AsZendVariable := Value;
+  FZendVariable.AsZendVariable := Value;
 end;
 
 { TZendVariable }
@@ -506,42 +530,44 @@ begin
   FValue := nil;
 end;
 
-
-
 function TZendVariable.GetAsBoolean: boolean;
 begin
   if not Assigned(FValue) then
-   begin
-    Result := false;
+  begin
+    Result := False;
     Exit;
-   end;
+  end;
 
   case FValue^._type of
-   IS_STRING :
-    begin
-      if SameText(GetAsString, 'True') then
-       Result := true
+    IS_STRING:
+      begin
+        if SameText(GetAsString, 'True') then
+          Result := True
         else
-         Result := false;
-    end;
-   IS_BOOL : Result := (FValue^.value.lval = 1);
-   IS_LONG, IS_RESOURCE : Result := (FValue^.value.lval = 1);
-   else
-    Result := false;
-   end;
+          Result := False;
+      end;
+    IS_BOOL:
+      Result := (FValue^.Value.lval = 1);
+    IS_LONG, IS_RESOURCE:
+      Result := (FValue^.Value.lval = 1);
+  else
+    Result := False;
+  end;
 end;
 
 function TZendVariable.GetAsDate: TDateTime;
 begin
   if not Assigned(FValue) then
-   begin
+  begin
     Result := 0;
     Exit;
-   end;
+  end;
 
   case FValue^._type of
-   IS_STRING : Result := StrToDate(GetAsString);
-   IS_DOUBLE : Result := FValue^.value.dval;
+    IS_STRING:
+      Result := StrToDate(GetAsString);
+    IS_DOUBLE:
+      Result := FValue^.Value.dval;
   else
     Result := 0;
   end;
@@ -550,20 +576,23 @@ end;
 function TZendVariable.GetAsDateTime: TDateTime;
 begin
   if not Assigned(FValue) then
-   begin
+  begin
     Result := 0;
     Exit;
-   end;
+  end;
 
   case FValue^._type of
-   IS_STRING : Result := StrToDateTime(GetAsString);
-   IS_DOUBLE : Result := FValue^.value.dval;
+    IS_STRING:
+      Result := StrToDateTime(GetAsString);
+    IS_DOUBLE:
+      Result := FValue^.Value.dval;
   else
     Result := 0;
   end;
 end;
 
 {$IFDEF VERSION5}
+
 function StrToFloatDef(const S: string; const Default: Extended): Extended;
 begin
   if not TextToFloat(PAnsiChar(S), Result, fvExtended) then
@@ -574,14 +603,18 @@ end;
 function TZendVariable.GetAsFloat: double;
 begin
   if not Assigned(FValue) then
-   begin
+  begin
     Result := 0;
     Exit;
-   end;
+  end;
 
   case FValue^._type of
-   IS_STRING : Result := StrToFloatDef(GetAsString,0.0);
-   IS_DOUBLE : Result := FValue^.value.dval;
+    IS_STRING:
+      Result := StrToFloatDef(GetAsString, 0.0);
+    IS_DOUBLE:
+      Result := FValue^.Value.dval;
+    IS_LONG  :
+      Result := FValue^.value.lval;
   else
     Result := 0;
   end;
@@ -590,18 +623,24 @@ end;
 function TZendVariable.GetAsInteger: integer;
 begin
   if not Assigned(FValue) then
-   begin
+  begin
     Result := 0;
     Exit;
-   end;
+  end;
 
   case FValue^._type of
-   IS_STRING : result := StrToIntDef(GetAsString, 0);
-   IS_DOUBLE : result := Round(FValue^.value.dval);
-   IS_NULL   : result := 0;
-   IS_LONG   : result := FValue^.value.lval;
-   IS_BOOL   : result := FValue^.value.lval;
-   IS_RESOURCE  : result := FValue^.value.lval;
+    IS_STRING:
+      Result := StrToIntDef(GetAsString, 0);
+    IS_DOUBLE:
+      Result := Round(FValue^.Value.dval);
+    IS_NULL:
+      Result := 0;
+    IS_LONG:
+      Result := FValue^.Value.lval;
+    IS_BOOL:
+      Result := FValue^.Value.lval;
+    IS_RESOURCE:
+      Result := FValue^.Value.lval;
   else
     Result := 0;
   end;
@@ -610,32 +649,37 @@ end;
 function TZendVariable.GetAsString: AnsiString;
 begin
   if not Assigned(FValue) then
-   begin
+  begin
     Result := '';
     Exit;
-   end;
+  end;
 
   case FValue^._type of
-   IS_STRING : begin
-                 try
-                   SetLength(Result, FValue^.value.str.len);
-                   Move(FValue^.value.str.val^, Result[1], FValue^.value.str.len);
-                 except
-                   Result := '';
-                 end;
-               end;
-   IS_DOUBLE : result := FloatToStr(FValue^.value.dval);
-   IS_LONG   : result := IntToStr(FValue^.value.lval);
-   IS_NULL   : result := '';
-   IS_RESOURCE : result := IntToStr(FValue^.value.lval);
-   IS_BOOL     :
+    IS_STRING:
       begin
-        if FValue^.value.lval = 1 then
-          Result := 'True'
-           else
-            result := 'False';
+        try
+          SetLength(Result, FValue^.Value.str.len);
+          Move(FValue^.Value.str.val^, Result[1], FValue^.Value.str.len);
+        except
+          Result := '';
+        end;
       end;
-   else
+    IS_DOUBLE:
+      Result := FloatToStr(FValue^.Value.dval);
+    IS_LONG:
+      Result := IntToStr(FValue^.Value.lval);
+    IS_NULL:
+      Result := '';
+    IS_RESOURCE:
+      Result := IntToStr(FValue^.Value.lval);
+    IS_BOOL:
+      begin
+        if FValue^.Value.lval = 1 then
+          Result := 'True'
+        else
+          Result := 'False';
+      end;
+  else
     Result := '';
   end;
 end;
@@ -643,14 +687,16 @@ end;
 function TZendVariable.GetAsTime: TDateTime;
 begin
   if not Assigned(FValue) then
-   begin
+  begin
     Result := 0;
     Exit;
-   end;
+  end;
 
   case FValue^._type of
-   IS_STRING : Result := StrToTime(GetAsString);
-   IS_DOUBLE : Result := FValue^.value.dval;
+    IS_STRING:
+      Result := StrToTime(GetAsString);
+    IS_DOUBLE:
+      Result := FValue^.Value.dval;
   else
     Result := 0;
   end;
@@ -659,21 +705,21 @@ end;
 function TZendVariable.GetAsVariant: variant;
 begin
   if not Assigned(FValue) then
-   begin
+  begin
     Result := NULL;
     Exit;
-   end;
+  end;
 
-  result := zval2variant(FValue^);
+  Result := zval2variant(FValue^);
 end;
 
 function TZendVariable.GetDataType: integer;
 begin
   if not Assigned(FValue) then
-   begin
+  begin
     Result := IS_NULL;
     Exit;
-   end;
+  end;
 
   Result := FValue^._type;
 end;
@@ -681,117 +727,122 @@ end;
 function TZendVariable.GetIsNull: boolean;
 begin
   if not Assigned(FValue) then
-   begin
-    Result := true;
+  begin
+    Result := True;
     Exit;
-   end;
+  end;
   Result := FValue^._type = IS_NULL;
 end;
 
 function TZendVariable.GetTypeName: string;
 begin
   if not Assigned(FValue) then
-   begin
+  begin
     Result := 'null';
     Exit;
-   end;
+  end;
 
   case FValue^._type of
-		IS_NULL:    result :=  'null';
-		IS_LONG:    result := 'integer';
-		IS_DOUBLE:  result := 'double';
-		IS_STRING:	result := 'string';
-		IS_ARRAY:  	result := 'array';
-		IS_OBJECT:	result := 'object';
-		IS_BOOL:   	result := 'boolean';
-		IS_RESOURCE: result :=  'resource';
-     else
-       result :=  'unknown';
-   end;
+    IS_NULL:
+      Result := 'null';
+    IS_LONG:
+      Result := 'integer';
+    IS_DOUBLE:
+      Result := 'double';
+    IS_STRING:
+      Result := 'string';
+    IS_ARRAY:
+      Result := 'array';
+    IS_OBJECT:
+      Result := 'object';
+    IS_BOOL:
+      Result := 'boolean';
+    IS_RESOURCE:
+      Result := 'resource';
+  else
+    Result := 'unknown';
+  end;
 end;
 
 procedure TZendVariable.SetAsBoolean(const Value: boolean);
 begin
   if not Assigned(FValue) then
-   begin
+  begin
     Exit;
-   end;
+  end;
   ZVAL_BOOL(FValue, Value);
 end;
 
 procedure TZendVariable.SetAsDate(const Value: TDateTime);
 begin
   if not Assigned(FValue) then
-   begin
+  begin
     Exit;
-   end;
+  end;
   ZVAL_DOUBLE(FValue, Value);
 end;
 
 procedure TZendVariable.SetAsDateTime(const Value: TDateTime);
 begin
   if not Assigned(FValue) then
-   begin
+  begin
     Exit;
-   end;
+  end;
   ZVAL_DOUBLE(FValue, Value);
 end;
 
 procedure TZendVariable.SetAsFloat(const Value: double);
 begin
   if not Assigned(FValue) then
-   begin
+  begin
     Exit;
-   end;
+  end;
   ZVAL_DOUBLE(FValue, Value);
 end;
 
 procedure TZendVariable.SetAsInteger(const Value: integer);
 begin
   if not Assigned(FValue) then
-   begin
+  begin
     Exit;
-   end;
+  end;
   ZVAL_LONG(FValue, Value);
 end;
 
 procedure TZendVariable.SetAsString(const Value: AnsiString);
 begin
   if not Assigned(FValue) then
-   begin
+  begin
     Exit;
-   end;
-  ZVAL_STRINGL(FValue, PAnsiChar(Value), Length(Value), true);
+  end;
+  ZVAL_STRINGL(FValue, PAnsiChar(Value), Length(Value), True);
 end;
 
 procedure TZendVariable.SetAsTime(const Value: TDateTime);
 begin
   if not Assigned(FValue) then
-   begin
+  begin
     Exit;
-   end;
+  end;
   ZVAL_DOUBLE(FValue, Value);
 end;
 
 procedure TZendVariable.SetAsVariant(const Value: variant);
 begin
   if not Assigned(FValue) then
-   begin
+  begin
     Exit;
-   end;
+  end;
   variant2zval(Value, FValue);
 end;
-
 
 procedure TZendVariable.UnAssign;
 begin
   if not Assigned(FValue) then
-   begin
+  begin
     Exit;
-   end;
+  end;
   ZVAL_NULL(FValue);
 end;
 
-
 end.
-
