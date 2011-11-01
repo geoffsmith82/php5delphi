@@ -67,7 +67,7 @@ procedure TfrmMain.btnRunPhpInfoClick(Sender: TObject);
 var
   html:string;
 begin
-  html := phpPSV.RunCode('include("rarptest.php");phpinfo();');
+  html := phpPSV.RunCode('phpinfo();');
   webkitView.Browser.MainFrame.LoadString(html,'http://localphpapp/demo/phpinfo');
   pgcMain.ActivePage := tsWebView;
 end;
