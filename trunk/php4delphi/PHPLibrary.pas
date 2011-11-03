@@ -19,6 +19,10 @@ uses
 {$IFDEF VERSION6}
   Variants,
 {$ENDIF}
+{.$IFDEF VERSION12}
+  System.Generics.Defaults,
+  System.Generics.Collections,
+{.$ENDIF}
   ZendTypes, ZendAPI,
   PHPTypes,
   PHPAPI,
@@ -55,6 +59,7 @@ type
     function GetInputArgAsDateTime(AIndex: integer): TDateTime;
     function GetInputArgAsZValue(AIndex: integer): pzval;
     function GetInputArgAsZendVariable(AIndex: integer): TZendVariable;
+    function GetInputArgCount:Integer;
   public
     procedure RegisterMethod(AName: AnsiString; ADescription: AnsiString;
       AProc: TDispatchProc; AParams: array of TParamType); virtual;
@@ -249,6 +254,11 @@ end;
 function TPHPSimpleLibrary.GetInputArgAsZValue(AIndex: integer): pzval;
 begin
   result := FParams[AIndex].ZendValue;
+end;
+
+function TPHPSimpleLibrary.GetInputArgCount: Integer;
+begin
+  Result := FParams.Count;
 end;
 
 constructor TPHPSimpleLibrary.Create(AOwner: TComponent);
@@ -561,5 +571,7 @@ begin
   inherited;
   LibraryName := 'delphi_system';
 end;
+
+
 
 end.
