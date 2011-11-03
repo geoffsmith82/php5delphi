@@ -16,14 +16,20 @@ interface
 
 uses
   Windows, SysUtils, Classes, {$IFDEF VERSION6} Variants,
-{$ENDIF} ZendTypes, PHPTypes, ZendAPI, PHPAPI;
+{$ENDIF} ZendTypes, PHPTypes, ZendAPI, PHPAPI,
+{.$IFDEF VERSION12}
+  System.Generics.Defaults,
+  System.Generics.Collections
+{.$ENDIF}
+;
 
 type
   TParamType = (tpString, tpInteger, tpFloat, tpBoolean, tpArray, tpUnknown);
 
-  TZendVariable = class
+  TZendVariable = class(TObject)
   private
     FValue: PZval;
+    FArrayValue : pppzval;
     function GetAsBoolean: boolean;
     procedure SetAsBoolean(const Value: boolean);
     function GetAsFloat: double;
@@ -45,7 +51,9 @@ type
     function GetTypeName: string;
   public
     constructor Create; virtual;
+    destructor Destroy; override;
     procedure UnAssign;
+    function UsePPZVal:Boolean;
     property IsNull: boolean read GetIsNull;
     property AsZendVariable: PZval read FValue write FValue;
     property AsBoolean: boolean read GetAsBoolean write SetAsBoolean;
@@ -58,6 +66,7 @@ type
     property AsVariant: variant read GetAsVariant write SetAsVariant;
     property DataType: integer read GetDataType;
     property TypeName: string read GetTypeName;
+    property PPZVal: pppzval read FArrayValue;
   end;
 
   TFunctionParam = class(TCollectionItem)
@@ -145,9 +154,27 @@ type
       write SetItem; default;
   end;
 
+{.$IFDEF VERSION12}
+  TArrayZendVariable = class(TObjectDictionary<string,TZendVariable>)
+  public
+    procedure DelKeyAndObj(key:string);
+    procedure ClearKeyAndObj();
+    destructor Destroy; override;
+  end;
+  TArrayVariable = class(TDictionary<string,Variant>);
+
+{.$ENDIF}
+
 function IsParamTypeCorrect(AParamType: TParamType; z: PZval): boolean;
 
 function ZendTypeToString(_type: integer): string;
+
+function ZValToArrayZendVariable(value:pzval;var oVars:TArrayZendVariable):Boolean; overload;
+function ZValToArrayZendVariable(value:pzval):TArrayZendVariable; overload;
+function ZValToTStrings(value:pzval;var oVars:TStrings):Boolean; overload;
+function ZValToTStrings(value:pzval):TStrings; overload;
+function ZValToArrayVariable(value:pzval;var oVars:TArrayVariable):Boolean; overload;
+function ZValToArrayVariable(value:pzval):TArrayVariable; overload;
 
 implementation
 
@@ -198,6 +225,125 @@ begin
   else
     Result := False;
   end;
+end;
+
+function ZValToArrayZendVariable(value: pzval; var oVars: TArrayZendVariable): Boolean;
+var
+  itemCount,i:Integer;
+  pos: HashPosition;
+  key:PAnsiChar;
+  key_len ,idx:DWORD;
+  oZVal:TZendVariable;
+begin
+  Result := False;
+  if not Assigned(value) then Exit;
+  if value^._type <> IS_ARRAY then Exit;
+  itemCount := zend_hash_num_elements(value^.value.ht);
+  if itemCount <= 0 then Exit;
+  if not Assigned(oVars) then oVars := TArrayZendVariable.Create([doOwnsValues]);
+
+  zend_hash_internal_pointer_reset_ex(value^.value.ht,pos);
+  while True do
+  begin
+    i := zend_hash_get_current_key_ex(value^.value.ht, key, key_len, idx, False, pos);
+    if i = HASH_KEY_NON_EXISTANT then Break;
+
+    oZVal := TZendVariable.Create;
+    zend_hash_get_current_data_ex(value^.value.ht,oZVal.PPZVal,pos);
+    oZVal.UsePPZVal;
+    //value := tmp^^^.value.str.val;
+
+    if i = HASH_KEY_IS_STRING then oVars.Add(AnsiString(key),oZVal)
+    else if i = HASH_KEY_IS_STRING then oVars.Add(IntToStr(idx),oZVal);
+
+    zend_hash_move_forward_ex(value^.value.ht, pos);
+    Result := True;
+  end;
+end;
+
+function ZValToArrayZendVariable(value:pzval):TArrayZendVariable;
+begin
+  ZValToArrayZendVariable(value,Result);
+end;
+
+function ZValToTStrings(value:pzval;var oVars:TStrings):Boolean;
+var
+  itemCount,i:Integer;
+  pos: HashPosition;
+  key:PAnsiChar;
+  key_len ,idx:DWORD;
+  tmp:pppzval;
+  val:Variant;
+begin
+  Result := False;
+  if not Assigned(value) then Exit;
+  if value^._type <> IS_ARRAY then Exit;
+  itemCount := zend_hash_num_elements(value^.value.ht);
+  if itemCount <= 0 then Exit;
+  if not Assigned(oVars) then oVars := TStringList.Create();
+
+  zend_hash_internal_pointer_reset_ex(value^.value.ht,pos);
+  while True do
+  begin
+    i := zend_hash_get_current_key_ex(value^.value.ht, key, key_len, idx, False, pos);
+    if i = HASH_KEY_NON_EXISTANT then Break;
+
+    New(tmp);
+    zend_hash_get_current_data_ex(value^.value.ht,tmp,pos);
+    val := zval2variant(tmp^^^);
+
+    if i = HASH_KEY_IS_STRING then oVars.Add(Trim(AnsiString(key))+'='+val)
+    else if i = HASH_KEY_IS_STRING then oVars.Add(IntToStr(idx)+'='+val);
+
+    FreeMem(tmp);
+    zend_hash_move_forward_ex(value^.value.ht, pos);
+    Result := True;
+  end;
+end;
+
+function ZValToTStrings(value:pzval):TStrings;
+begin
+  ZValToTStrings(value,Result);
+end;
+
+function ZValToArrayVariable(value:pzval;var oVars:TArrayVariable):Boolean;
+var
+  itemCount,i:Integer;
+  pos: HashPosition;
+  key:PAnsiChar;
+  key_len ,idx:DWORD;
+  tmp:pppzval;
+  val:Variant;
+begin
+  Result := False;
+  if not Assigned(value) then Exit;
+  if value^._type <> IS_ARRAY then Exit;
+  itemCount := zend_hash_num_elements(value^.value.ht);
+  if itemCount <= 0 then Exit;
+  if not Assigned(oVars) then oVars := TArrayVariable.Create();
+
+  zend_hash_internal_pointer_reset_ex(value^.value.ht,pos);
+  while True do
+  begin
+    i := zend_hash_get_current_key_ex(value^.value.ht, key, key_len, idx, False, pos);
+    if i = HASH_KEY_NON_EXISTANT then Break;
+
+    New(tmp);
+    zend_hash_get_current_data_ex(value^.value.ht,tmp,pos);
+    val := zval2variant(tmp^^^);
+
+    if i = HASH_KEY_IS_STRING then oVars.Add(Trim(AnsiString(key)),val)
+    else if i = HASH_KEY_IS_STRING then oVars.Add(IntToStr(idx),val);
+
+    FreeMem(tmp);
+    zend_hash_move_forward_ex(value^.value.ht, pos);
+    Result := True;
+  end;
+end;
+
+function ZValToArrayVariable(value:pzval):TArrayVariable;
+begin
+  ZValToArrayVariable(value,Result);
 end;
 
 { TPHPFunctions }
@@ -527,7 +673,14 @@ end;
 constructor TZendVariable.Create;
 begin
   inherited Create;
+  New(FArrayValue);
   FValue := nil;
+end;
+
+destructor TZendVariable.Destroy;
+begin
+  FreeMem(FArrayValue);
+  inherited;
 end;
 
 function TZendVariable.GetAsBoolean: boolean;
@@ -764,6 +917,7 @@ begin
   end;
 end;
 
+
 procedure TZendVariable.SetAsBoolean(const Value: boolean);
 begin
   if not Assigned(FValue) then
@@ -843,6 +997,49 @@ begin
     Exit;
   end;
   ZVAL_NULL(FValue);
+end;
+
+function TZendVariable.UsePPZVal:Boolean;
+begin
+  Result := Assigned(FArrayValue) and Assigned(FArrayValue^) and Assigned(FArrayValue^^);
+  if Result then FValue := FArrayValue^^;
+end;
+
+{ TArrayZendVariable }
+
+{ TArrayZendVariable }
+
+procedure TArrayZendVariable.ClearKeyAndObj;
+var
+  obj:TZendVariable;
+  keys:TArray<string>;
+  i:Integer;
+begin
+  keys := Self.Keys.ToArray;
+  for i := Low(keys) to High(keys) do
+  begin
+    obj := Self.Items[keys[i]];
+    FreeAndNil(obj);
+  end;
+  Clear;
+end;
+
+procedure TArrayZendVariable.DelKeyAndObj(key: string);
+var
+  obj:TZendVariable;
+begin
+  if (Self.ContainsKey(key)) then
+  begin
+    obj := Self.Items[key];
+    FreeAndNil(obj);
+  end;
+  Remove(key);
+end;
+
+destructor TArrayZendVariable.Destroy;
+begin
+  ClearKeyAndObj;
+  inherited;
 end;
 
 end.
