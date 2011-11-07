@@ -157,11 +157,16 @@ type
 {.$IFDEF VERSION12}
   TArrayZendVariable = class(TObjectDictionary<string,TZendVariable>)
   public
+    function IsExists(s:string):Boolean;
     procedure DelKeyAndObj(key:string);
     procedure ClearKeyAndObj();
     destructor Destroy; override;
   end;
-  TArrayVariable = class(TDictionary<string,Variant>);
+
+  TArrayVariable = class(TDictionary<string,Variant>)
+  public
+    function IsExists(s:string):Boolean;
+  end;
 
 {.$ENDIF}
 
@@ -1040,6 +1045,18 @@ destructor TArrayZendVariable.Destroy;
 begin
   ClearKeyAndObj;
   inherited;
+end;
+
+function TArrayZendVariable.IsExists(s: string): Boolean;
+begin
+  Result := ContainsKey(s);
+end;
+
+{ TArrayVariable }
+
+function TArrayVariable.IsExists(s: string): Boolean;
+begin
+  Result := ContainsKey(s);
 end;
 
 end.
