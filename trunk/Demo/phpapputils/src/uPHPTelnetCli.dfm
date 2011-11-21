@@ -2,11 +2,23 @@ object dmPHP: TdmPHP
   OldCreateOrder = False
   OnCreate = PHPExtensionCreate
   Version = '0.0'
-  Functions = <>
+  Functions = <
+    item
+      FunctionName = 'time_delay'
+      Tag = 0
+      Parameters = <
+        item
+          Name = 'ms'
+          ParamType = tpInteger
+        end>
+      OnExecute = _php_delay
+      Description = #24310#26102#31243#24207
+    end>
+  ModuleName = 'telnet win32'
   Height = 150
   Width = 215
   object idTelnet: TIdTelnet
-    Terminal = 'dumb'
+    ThreadedEvent = True
     Left = 8
     Top = 8
   end
@@ -28,7 +40,15 @@ object dmPHP: TdmPHP
       item
         Name = 'open'
         Tag = 0
-        Parameters = <>
+        Parameters = <
+          item
+            Name = 'host'
+            ParamType = tpString
+          end
+          item
+            Name = 'port'
+            ParamType = tpUnknown
+          end>
         OnExecute = phpTelnet_open
       end
       item
@@ -40,7 +60,11 @@ object dmPHP: TdmPHP
       item
         Name = 'sendcmd'
         Tag = 0
-        Parameters = <>
+        Parameters = <
+          item
+            Name = 'cmd'
+            ParamType = tpString
+          end>
         OnExecute = phpTelnet_sendcmd
       end
       item

@@ -44,9 +44,13 @@ type
       const AStatusText: string);
     procedure idTelnetTelnetCommand(Sender: TIdTelnet;
       Status: TIdTelnetCommand);
+    procedure _php_delay(Sender: TObject;
+      Parameters: TFunctionParams; var ReturnValue: Variant;
+      ZendVar: TZendVariable; TSRMLS_DC: Pointer);
   private
     { Private declarations }
     FTelnetData:TStrings;
+    FLast:string;
   public
     { Public declarations }
   end;
@@ -64,7 +68,7 @@ procedure TdmPHP.phpTelnet_getresult(Sender: TPHPClassInstance;
 var
   mode:Integer;
 begin
-  if idTelnet.Connected and Assigned(FTelnetData) then
+  if idTelnet.Connected and not Assigned(FTelnetData) then
   begin
     ReturnValue := False;
     Exit;
@@ -72,10 +76,12 @@ begin
   ReturnValue := '';
   if Parameters.Count = 0 then
   begin
-    if FTelnetData.Count > 0 then
+    if FTelnetData.Count >= 1 then
       ReturnValue := FTelnetData.Strings[0];
-    if FTelnetData.Count > 1 then
+    if FTelnetData.Count >= 2 then
       FTelnetData.Delete(0);
+    if ReturnValue = FLast then ReturnValue := ''
+    else FLast := ReturnValue;
   end else begin
     mode := Parameters[0].Value;
     if mode = -1 then
@@ -92,6 +98,14 @@ begin
   end;
 end;
 
+procedure TdmPHP._php_delay(Sender: TObject;
+  Parameters: TFunctionParams; var ReturnValue: Variant; ZendVar: TZendVariable;
+  TSRMLS_DC: Pointer);
+begin
+  if Parameters.Count = 1 then Sleep(Parameters[0].Value)
+  else Sleep(10);
+end;
+
 procedure TdmPHP.idTelnetConnected(Sender: TObject);
 begin
   //
@@ -104,8 +118,10 @@ var
   ibuf: Cardinal;
 begin
   ibuf := Length(Buffer);
-  bufstr := BytesToString(Buffer);
-  FTelnetData.Text := FTelnetData.Text+bufstr;
+  bufstr := Trim(BytesToString(Buffer));
+  //FTelnetData.Append('['+IntToStr(ibuf)+']'+bufstr);// '
+  //FTelnetData.Text := FTelnetData.Text + '['+IntToStr(ibuf)+']'+ bufstr;
+  FTelnetData.Text :=  FTelnetData.Text+Trim(bufstr);
   //PHPBuffer.Append(bufstr);
 end;
 
@@ -150,13 +166,17 @@ procedure TdmPHP.phpTelnet_open(Sender: TPHPClassInstance;
 begin
   if not IdTelnet.Connected then
   begin
-    idTelnet.Host := phpTelnet.Properties.ByName('host').AsString;
-    idTelnet.Port := phpTelnet.Properties.ByName('port').AsInteger;
-    IdTelnet.Connect;
-    if idTelnet.Connected and not Assigned(FTelnetData) then
+    if not Assigned(FTelnetData) then
       FTelnetData := TStringList.Create;
+    //phpTelnet.Properties.
+    if Parameters.Count = 2 then
+    begin
+      idTelnet.Host := Parameters.Values('host');
+      idTelnet.Port := Parameters.Values('port') ;//phpTelnet.Properties.ByName('port').AsInteger;
+
+      IdTelnet.Connect;
+    end;
   end;
-  Sleep(100);
   ReturnValue := IdTelnet.Connected;
 end;
 
@@ -167,7 +187,10 @@ begin
   if IdTelnet.Connected then
   begin
     if (Parameters.Count = 1) then
+    begin
       idTelnet.SendString(Parameters[0].ZendVariable.AsString);
+      //Sleep(200);
+    end;
   end;
 end;
 
