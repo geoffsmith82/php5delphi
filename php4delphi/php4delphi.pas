@@ -229,8 +229,22 @@ type
     property ContentType: AnsiString read FContentType write FContentType;
   end;
 
+  TPHPOnRunCodeEvent = procedure (info:string) of object;
+
   TpsvPHP = class(TpsvCustomPHP)
+  private
+    FCodes: TStrings;
+    FPreVars: TStrings;
+    FOnRunCode: TPHPOnRunCodeEvent;
+  public
+    constructor Create(AOwner: TComponent); override;
+    destructor Destroy; override;
+    function RunPreCode:string;
   published
+    property PreVars : TStrings read FPreVars;
+    property Codes : TStrings read FCodes;
+    property OnRunCode :TPHPOnRunCodeEvent read FOnRunCode write FOnRunCode;
+
     property About;
     property FileName;
     property Variables;
@@ -1823,6 +1837,44 @@ end;
 procedure TPHPMemoryStream.SetInitialSize(ASize: integer);
 begin
   Capacity := ASize;
+end;
+
+{ TpsvPHP }
+
+constructor TpsvPHP.Create(AOwner: TComponent);
+begin
+  inherited;
+  FPreVars := TStringList.Create;
+  FCodes := TStringList.Create;
+end;
+
+destructor TpsvPHP.Destroy;
+begin
+  FreeAndNil(FPreVars);
+  FreeAndNil(FCodes);
+  inherited;
+end;
+
+function TpsvPHP.RunPreCode: string;
+var
+  vname,vval:string;
+  i:Integer;
+begin
+  //FPhp := TpsvPHP.Create(nil);
+  for i := 0 to FPreVars.Count - 1 do
+  begin
+    vname := Trim(FPreVars.Names[i]);
+    if (vname <> '') then
+    begin
+      vval := Trim(FPreVars.Values[vname]);
+      if (Variables.IndexOf(vname) < 0 ) then
+        Variables.Add.Name := vname;
+      VariableByName(vname).Value := vval;
+    end;
+  end;
+  if FCodes.Text <> '' then
+    Result := RunCode(FCodes.Text);
+  if Assigned(FOnRunCode) then FOnRunCode(Result);
 end;
 
 end.
