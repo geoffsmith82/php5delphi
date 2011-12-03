@@ -59,13 +59,31 @@ object frmMain: TfrmMain
         TabOrder = 1
       end
       object btnGetGlobalVariants: TButton
-        Left = 128
+        Left = 122
         Top = 16
         Width = 113
         Height = 25
         Caption = 'GetGlobalVariants'
         TabOrder = 2
         OnClick = btnGetGlobalVariantsClick
+      end
+      object btnReturnArray: TButton
+        Left = 392
+        Top = 16
+        Width = 113
+        Height = 25
+        Caption = 'ReturnArray'
+        TabOrder = 3
+        OnClick = btnReturnArrayClick
+      end
+      object btnGetKeyArray: TButton
+        Left = 257
+        Top = 16
+        Width = 113
+        Height = 25
+        Caption = 'GetKeyArray'
+        TabOrder = 4
+        OnClick = btnGetKeyArrayClick
       end
     end
     object tsWebView: TTabSheet
