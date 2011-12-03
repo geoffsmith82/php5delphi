@@ -15,7 +15,7 @@ unit phpLibrary;
 interface
 
 uses
-  Windows, SysUtils, Classes,
+  Windows, SysUtils, Classes, System.StrUtils,
 {$IFDEF VERSION6}
   Variants,
 {$ENDIF}
@@ -45,12 +45,19 @@ type
   TPHPSimpleLibrary = class(TCustomPHPLibrary)
   private
     FRetValue: variant;
+    FRetZValue: TZendVariable;
+    FRetArray: TStrings;
     FParams: TFunctionParams;
     FMethods: TStringList;
   protected
     procedure _Execute(Sender: TObject; Parameters: TFunctionParams;
       var ReturnValue: variant; ZendVar: TZendVariable; TSRMLS_DC: Pointer);
     procedure ReturnOutputArg(AValue: variant);
+    procedure ReturnOutputArray(AValue: TStrings);
+    procedure ReturnOutputArgZVal(AValue: pzval);
+    procedure ReturnOutputArgZendVar(AValue: TZendVariable);
+    function GetReturnOutputArgZVal():pzval;
+    function GetReturnOutputArgZendVar():TZendVariable;
     function GetInputArg(AIndex: integer): variant;
     function GetInputArgAsString(AIndex: integer): string;
     function GetInputArgAsInteger(AIndex: integer): integer;
@@ -65,6 +72,7 @@ type
       AProc: TDispatchProc; AParams: array of TParamType); virtual;
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
+    property RetArray: TStrings read FRetArray;
   end;
 
   TPHPSystemLibrary = class(TPHPSimpleLibrary)
@@ -179,9 +187,15 @@ begin
     VarClear(FRetValue);
   FParams := Parameters;
   ActiveFunctionName := get_active_function_name(TSRMLS_DC);
+  FRetZValue := ZendVar;
+  FRetArray.Clear;
   TDispatchObject(FMethods.Objects[FMethods.IndexOf(ActiveFunctionName)]).Proc;
   if not VarIsEmpty(FRetValue) then
     ReturnValue := FRetValue;
+  ZendVar := FRetZValue;
+  FRetArray.Clear;
+  FRetZValue := nil;
+  //ZendVar.AsString := '200000';
 end;
 
 procedure TPHPSimpleLibrary.RegisterMethod(AName: AnsiString;
@@ -213,6 +227,47 @@ end;
 procedure TPHPSimpleLibrary.ReturnOutputArg(AValue: variant);
 begin
   FRetValue := AValue;
+end;
+
+procedure TPHPSimpleLibrary.ReturnOutputArgZendVar(AValue: TZendVariable);
+begin
+  FRetZValue := AValue;
+end;
+
+procedure TPHPSimpleLibrary.ReturnOutputArgZVal(AValue: pzval);
+begin
+  FRetZValue.AsZendVariable := AValue;
+end;
+
+procedure TPHPSimpleLibrary.ReturnOutputArray(AValue: TStrings);
+var
+  i,p: Integer;
+  pval:pzval;
+  s,key,val: AnsiString;
+begin
+  if Assigned(AValue) and (AValue.Count > 0) then
+  begin
+    pval := GetReturnOutputArgZVal;
+    if _array_init(pval, nil, 0) <> FAILURE then
+    begin
+      for i := 0 to AValue.Count-1 do
+      begin
+        s := AValue.Strings[i];
+        p := PosEx('=',s);
+        if (p>0) then
+        begin
+          key := Trim(LeftStr(s,p-1));
+          val := RightStr(s,Length(s)-p);
+          //key :
+          if key<>'' then
+            add_assoc_string_ex(pval,PAnsiChar(Key),SizeOf(key)+1,PAnsiChar(val),1)
+          else add_next_index_string(pval,PAnsiChar(s),1);
+        end else add_next_index_string(pval,PAnsiChar(s),1);
+        //add_assoc_string_ex(pval,'user',SizeOf('user')+1,'1234567890',1);
+      end;
+    end;
+
+  end;
 end;
 
 function TPHPSimpleLibrary.GetInputArg(AIndex: integer): variant;
@@ -261,10 +316,23 @@ begin
   Result := FParams.Count;
 end;
 
+function TPHPSimpleLibrary.GetReturnOutputArgZendVar: TZendVariable;
+begin
+  Result := FRetZValue;
+end;
+
+function TPHPSimpleLibrary.GetReturnOutputArgZVal: pzval;
+begin
+  Result := nil;
+  if Assigned(FRetZValue) then
+    Result := FRetZValue.AsZendVariable;
+end;
+
 constructor TPHPSimpleLibrary.Create(AOwner: TComponent);
 begin
   inherited;
   FMethods := TStringList.Create;
+  FRetArray := TStringList.Create;
 end;
 
 destructor TPHPSimpleLibrary.Destroy;
@@ -274,6 +342,7 @@ begin
   for cnt := 0 to FMethods.Count - 1 do
     FMethods.Objects[cnt].Free;
   FMethods.Free;
+  FreeAndNil(FRetArray);
   inherited;
 end;
 

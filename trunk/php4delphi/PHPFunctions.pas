@@ -315,6 +315,7 @@ function ZValToArrayVariable(value:pzval;var oVars:TArrayVariable):Boolean;
 var
   itemCount,i:Integer;
   pos: HashPosition;
+  s:AnsiString;
   key:PAnsiChar;
   key_len ,idx:DWORD;
   tmp:pppzval;
@@ -323,6 +324,7 @@ begin
   Result := False;
   if not Assigned(value) then Exit;
   if value^._type <> IS_ARRAY then Exit;
+
   itemCount := zend_hash_num_elements(value^.value.ht);
   if itemCount <= 0 then Exit;
   if not Assigned(oVars) then oVars := TArrayVariable.Create();
@@ -332,14 +334,34 @@ begin
   begin
     i := zend_hash_get_current_key_ex(value^.value.ht, key, key_len, idx, False, pos);
     if i = HASH_KEY_NON_EXISTANT then Break;
-
     New(tmp);
     zend_hash_get_current_data_ex(value^.value.ht,tmp,pos);
     val := zval2variant(tmp^^^);
-
-    if i = HASH_KEY_IS_STRING then oVars.Add(Trim(AnsiString(key)),val)
-    else if i = HASH_KEY_IS_STRING then oVars.Add(IntToStr(idx),val);
-
+//    if i = HASH_KEY_IS_LONG then
+//    begin
+//    MessageBox(0, 'long', '111', MB_OK);
+//      New(tmp);
+//      zend_hash_get_current_data_ex(value^.value.ht,tmp,pos);
+//      val := zval2variant(tmp^^^);
+//      oVars.Add(IntToStr(idx),val);
+//      FreeMem(tmp);
+//    end  else if i = HASH_KEY_IS_STRING then
+//    begin
+//    MessageBox(0, 'string', '111', MB_OK);
+//      New(tmp);
+//      zend_hash_get_current_data_ex(value^.value.ht,tmp,pos);
+//      val := zval2variant(tmp^^^);
+//      MessageBox(0, 'string1', '111', MB_OK);
+//      SetLength(s,key_len);
+//      StrLCopy(PAnsiChar(s), key, key_len);
+//      //s := key^;
+//      //Move(key,@s,key_len);
+//      oVars.Add(s,val);
+//      MessageBox(0, 'string2', '111', MB_OK);
+//      FreeMem(tmp);
+//    end;
+    if i = HASH_KEY_IS_LONG then oVars.Add(IntToStr(idx),val)
+    else if i = HASH_KEY_IS_STRING then oVars.Add(AnsiString(key),val);
     FreeMem(tmp);
     zend_hash_move_forward_ex(value^.value.ht, pos);
     Result := True;
