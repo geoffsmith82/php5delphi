@@ -260,7 +260,7 @@ begin
           val := RightStr(s,Length(s)-p);
           //key :
           if key<>'' then
-            add_assoc_string_ex(pval,PAnsiChar(Key),SizeOf(key)+1,PAnsiChar(val),1)
+            add_assoc_string_ex(pval,PAnsiChar(Key),Length(key)+1,PAnsiChar(val),1)
           else add_next_index_string(pval,PAnsiChar(s),1);
         end else add_next_index_string(pval,PAnsiChar(s),1);
         //add_assoc_string_ex(pval,'user',SizeOf('user')+1,'1234567890',1);
