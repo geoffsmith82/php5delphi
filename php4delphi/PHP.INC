@@ -58,8 +58,8 @@ backward compatibility between PHP versions.
 //problems
 
 {$IFDEF PHP_COMPILER_ID}
- {$DEFINE COMPILER_VC6}
- {.$DEFINE COMPILER_VC9}
+ {.$DEFINE COMPILER_VC6}
+ {$DEFINE COMPILER_VC9}
 {$ENDIF}
 
 {$IFDEF PHP433}

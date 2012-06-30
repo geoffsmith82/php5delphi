@@ -54,6 +54,7 @@ type
     destructor Destroy; override;
     procedure UnAssign;
     function UsePPZVal:Boolean;
+    procedure NewValue();
     property IsNull: boolean read GetIsNull;
     property AsZendVariable: PZval read FValue write FValue;
     property AsBoolean: boolean read GetAsBoolean write SetAsBoolean;
@@ -108,6 +109,41 @@ type
     property Items[Index: integer]: TFunctionParam read GetItem
       write SetItem; default;
   end;
+
+  TPHPExtConstant = class(TCollectionItem)
+  private
+    FName: string;
+    FConstantType: TParamType;
+    FValue: variant;
+  public
+    constructor Create(Collection: TCollection); override;
+    destructor Destroy; override;
+    function GetDisplayName: string; override;
+    procedure SetDisplayName(const Value: string); override;
+    procedure AssignTo(Dest: TPersistent); override;
+  published
+    property Name: string read FName write SetDisplayName;
+    property ConstantType: TParamType read FConstantType write FConstantType;
+    property Value: variant read FValue write FValue;
+  end;
+
+  TPHPExtConstants = class(TCollection)
+  private
+    FOwner: TPersistent;
+    function GetItem(Index: integer): TPHPExtConstant;
+    procedure SetItem(Index: integer; Value: TPHPExtConstant);
+  protected
+    function GetOwner: TPersistent; override;
+    procedure SetItemName(Item: TCollectionItem); override;
+  public
+    constructor Create(Owner: TPersistent; ItemClass: TCollectionItemClass);
+    function ConstantByName(AName: string): TPHPExtConstant;
+    function Values(AName: string): variant;
+    function Add: TPHPExtConstant;
+    property Items[Index: integer]: TPHPExtConstant read GetItem
+      write SetItem; default;
+  end;
+
 
   TPHPExecute = procedure(Sender: TObject; Parameters: TFunctionParams;
     var ReturnValue: variant; ZendVar: TZendVariable; TSRMLS_DC: pointer)
@@ -945,6 +981,13 @@ begin
 end;
 
 
+procedure TZendVariable.NewValue;
+begin
+  //FValue := MAKE_STD_ZVAL;
+  //ZVAL_EMPTY_STRING(FValue);
+  //ZVAL_STRINGL(FValue,'',1,True);
+end;
+
 procedure TZendVariable.SetAsBoolean(const Value: boolean);
 begin
   if not Assigned(FValue) then
@@ -1019,6 +1062,7 @@ end;
 
 procedure TZendVariable.UnAssign;
 begin
+
   if not Assigned(FValue) then
   begin
     Exit;
@@ -1079,6 +1123,151 @@ end;
 function TArrayVariable.IsExists(s: string): Boolean;
 begin
   Result := ContainsKey(s);
+end;
+
+{ TPHPExtConstants }
+
+function TPHPExtConstants.Add: TPHPExtConstant;
+begin
+  Result := TPHPExtConstant(inherited Add);
+end;
+
+function TPHPExtConstants.ConstantByName(AName: string): TPHPExtConstant;
+var
+  I: integer;
+begin
+  Result := nil;
+  for I := 0 to Count - 1 do
+  begin
+    if SameText(AName, Items[I].Name) then
+    begin
+      Result := Items[I];
+      break;
+    end;
+  end;
+end;
+
+constructor TPHPExtConstants.Create(Owner: TPersistent;
+  ItemClass: TCollectionItemClass);
+begin
+  inherited Create(ItemClass);
+  FOwner := Owner;
+end;
+
+function TPHPExtConstants.GetItem(Index: integer): TPHPExtConstant;
+begin
+  Result := TPHPExtConstant(inherited GetItem(Index));
+end;
+
+function TPHPExtConstants.GetOwner: TPersistent;
+begin
+  Result := FOwner;
+end;
+
+procedure TPHPExtConstants.SetItem(Index: integer; Value: TPHPExtConstant);
+begin
+  inherited SetItem(Index, TCollectionItem(Value));
+end;
+
+procedure TPHPExtConstants.SetItemName(Item: TCollectionItem);
+var
+  I, J: integer;
+  ItemName: string;
+  CurItem: TPHPExtConstant;
+begin
+  J := 1;
+  while True do
+  begin
+    ItemName := Format('Const%d', [J]);
+    I := 0;
+    while I < Count do
+    begin
+      CurItem := Items[I] as TPHPExtConstant;
+      if (CurItem <> Item) and (CompareText(CurItem.Name, ItemName) = 0) then
+      begin
+        Inc(J);
+        break;
+      end;
+      Inc(I);
+    end;
+    if I >= Count then
+    begin
+      (Item as TPHPExtConstant).Name := ItemName;
+      break;
+    end;
+  end;
+end;
+
+function TPHPExtConstants.Values(AName: string): variant;
+var
+  P: TPHPExtConstant;
+begin
+  Result := NULL;
+  P := ConstantByName(AName);
+  if Assigned(P) then
+    Result := P.Value;
+end;
+
+{ TPHPExtConstant }
+
+procedure TPHPExtConstant.AssignTo(Dest: TPersistent);
+begin
+  if Dest is TPHPExtConstant then
+  begin
+    if Assigned(Collection) then
+      Collection.BeginUpdate;
+    try
+      with TFunctionParam(Dest) do
+      begin
+        ParamType := Self.ConstantType;
+        Name := Self.Name;
+      end;
+    finally
+      if Assigned(Collection) then
+        Collection.EndUpdate;
+    end;
+  end
+  else
+    inherited AssignTo(Dest);
+end;
+
+constructor TPHPExtConstant.Create(Collection: TCollection);
+begin
+  inherited;
+  FValue := '';
+end;
+
+destructor TPHPExtConstant.Destroy;
+begin
+  inherited;
+end;
+
+function TPHPExtConstant.GetDisplayName: string;
+begin
+  if FName = '' then
+    Result := inherited GetDisplayName
+  else
+    Result := FName;
+end;
+
+procedure TPHPExtConstant.SetDisplayName(const Value: string);
+var
+  I: integer;
+  F: TPHPExtConstant;
+begin
+  if AnsiCompareText(Value, FName) <> 0 then
+  begin
+    if Collection <> nil then
+      for I := 0 to Collection.Count - 1 do
+      begin
+        F := TPHPExtConstants(Collection).Items[I];
+        if ((F <> Self) and (F is TPHPExtConstant) and
+          (AnsiCompareText(Value, F.Name) = 0)) then
+          raise Exception.Create('Duplicate Constant name');
+      end;
+    FName := Value;
+    Changed(False);
+  end;
 end;
 
 end.
