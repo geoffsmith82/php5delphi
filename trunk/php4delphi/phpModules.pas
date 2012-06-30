@@ -41,7 +41,10 @@ type
     FVersion    : string;
     FModuleName : string;
     FFunctions  : TPHPFunctions;
+    FConstants  : TPHPExtConstants;
     procedure SetFunctions(const Value : TPHPFunctions);
+    procedure SetConstants(const Value : TPHPExtConstants);
+    procedure RegConstants(Sender : TObject; TSRMLS_DC : pointer);
   protected
   public
     constructor Create(AOwner : TComponent); override;
@@ -51,11 +54,13 @@ type
     procedure phpwrite_h(str : PAnsiChar; str_len : integer);
     procedure puts_h(str : PAnsiChar);
     procedure ReportError(ErrType : integer; ErrText : PAnsiChar);
-    function  FunctionByName(const AName : string) :TPHPFunction;
+    function FunctionByName(const AName : string) :TPHPFunction;
+    function ConstantByName(const AName : string) :TPHPExtConstant;
     property About : TPHPAboutInfo read FAbout write FAbout stored False;
     property ModuleType : TZendModuleType read FModuleType write FModuleType default mtPersistent;
     property Version    : string read FVersion write FVersion;
     property Functions  : TPHPFunctions read FFunctions write SetFunctions;
+    property Constants  : TPHPExtConstants read FConstants write SetConstants;
     property ModuleName : string read FModuleName write FModuleName;
     property TSRMLS : pointer read FTSRMLS;
     property OnActivation : TNotifyEvent read FOnActivation write FOnActivation;
@@ -76,6 +81,7 @@ type
     property ModuleType;
     property Version;
     property Functions;
+    property Constants;
     property ModuleName;
     property OnActivation;
     property OnDeactivation;
@@ -181,17 +187,18 @@ var
 begin
   if app_globals_id = 0 then
   ts_allocate_id(@app_globals_id, sizeof(pointer), nil, nil);
-     if Assigned(Application) then
-      begin
-       Application.ModuleNumber := module_number;
-       Extension := Application.ActivatePHPModule;
-       try
-        if Assigned(Extension.OnModuleInit) then
-          Extension.OnModuleInit(Application, TSRMLS_DC);
-       finally
-         Application.DeactivatePHPModule(Extension);
-        end;
-      end;
+  if Assigned(Application) then
+  begin
+    Application.ModuleNumber := module_number;
+    Extension := Application.ActivatePHPModule;
+    try
+      Extension.RegConstants(Application, TSRMLS_DC);
+      if Assigned(Extension.OnModuleInit) then
+        Extension.OnModuleInit(Application, TSRMLS_DC);
+    finally
+      Application.DeactivatePHPModule(Extension);
+    end;
+  end;
   result := SUCCESS;
 end;
 
@@ -376,10 +383,24 @@ begin
 end;
 
 { TCustomPHPExtension }
+function TCustomPHPExtension.ConstantByName(
+  const AName: string): TPHPExtConstant;
+var
+ cnt : integer;
+begin
+  Result := nil;
+  for cnt := 0 to FConstants.Count - 1 do
+   begin
+     if SameText(AName, FConstants[cnt].Name) then
+      break;
+   end;
+end;
+
 constructor TCustomPHPExtension.Create(AOwner: TComponent);
 begin
   inherited CreateNew(AOwner);
   FFunctions := TPHPFunctions.Create(Self, TPHPFunction);
+  FConstants := TPHPExtConstants.Create(Self, TPHPExtConstant);
   FModuleType := mtPersistent;
   FVersion := '0.0';
 end;
@@ -391,7 +412,8 @@ begin
     OnDestroy(Self);
   except
   end;
-  FFunctions.Free;
+  FreeAndNil(FFunctions);
+  FreeAndNil(FConstants);
   inherited;
 end;
 
@@ -429,10 +451,57 @@ begin
   php_header_write(str, strlen(str), FTSRMLS);
 end;
 
+procedure TCustomPHPExtension.RegConstants(Sender: TObject; TSRMLS_DC: pointer);
+var
+  cnt: Integer;
+  ConstantName : AnsiString;
+  i:Integer;
+  f:Double;
+  c:AnsiString;
+  item : TPHPExtConstant;
+begin
+  for cnt := 0 to FConstants.Count - 1 do
+  begin
+    item := FConstants[cnt];
+    ConstantName := AnsiString(item.Name);
+    case item.ConstantType of
+      tpInteger:
+        begin
+          i := item.Value;
+          zend_register_long_constant(PAnsiChar(ConstantName),
+            strlen(PAnsiChar(ConstantName)) + 1, i,
+            CONST_PERSISTENT or CONST_CS, 0, TSRMLS_DC);
+        end;
+      tpFloat:
+        begin
+          f := item.Value;
+          zend_register_double_constant(PAnsiChar(ConstantName),
+            strlen(PAnsiChar(ConstantName)) + 1, f,
+            CONST_PERSISTENT or CONST_CS, 0, TSRMLS_DC);
+        end;
+      tpString:
+        begin
+          c := item.Value;
+          zend_register_stringl_constant(PAnsiChar(ConstantName),
+            strlen(PAnsiChar(ConstantName)) + 1, PAnsiChar(c),
+            strlen(PAnsiChar(c)) + 1,
+            CONST_PERSISTENT or CONST_CS, 0, TSRMLS_DC);
+        end;
+    end;
+
+
+  end;
+end;
+
 procedure TCustomPHPExtension.ReportError(ErrType: integer;
   ErrText: PAnsiChar);
 begin
   zend_error(ErrType, ErrText);
+end;
+
+procedure TCustomPHPExtension.SetConstants(const Value: TPHPExtConstants);
+begin
+  FConstants.Assign(Value);
 end;
 
 procedure TCustomPHPExtension.SetFunctions(const Value: TPHPFunctions);
