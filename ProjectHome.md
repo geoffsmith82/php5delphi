@@ -1,0 +1,1 @@
+php for delphi ,fix php vc9 compile error
